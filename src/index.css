@@ -4,4 +4,5 @@
 @theme {
   --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #E00000;
 }

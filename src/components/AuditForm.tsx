@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Audit, saveAudit, getAudit, Score, generateId } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
+import { getCategoryScore } from '../lib/score';
 import { ScoreButton } from './ScoreButton';
 import { ArrowLeft, Save, Download } from 'lucide-react';
 
@@ -73,7 +74,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
   return (
     <div className="max-w-3xl mx-auto bg-white min-h-screen pb-24 font-sans">
       <div className="sticky top-0 z-10 bg-black text-white p-4 shadow-md flex items-center justify-between">
-        <button onClick={onBack} className="p-2 -ml-2 hover:bg-gray-800 rounded-full transition-colors">
+        <button onClick={onBack} className="p-2 -ml-2 hover:bg-gray-800 rounded-full transition-colors text-brand">
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="font-heading font-bold text-lg tracking-wider uppercase">Reset Fitness</h1>
@@ -117,24 +118,32 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
         </div>
 
         <div className="space-y-8">
-          {CHECKLIST_CATEGORIES.map(category => (
-            <div key={category.id} className="space-y-3">
-              <h3 className="font-heading font-bold text-lg text-black border-b-2 border-black pb-2">
-                {category.title}
-              </h3>
-              <div className="space-y-2">
-                {category.items.map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
-                    <span className="text-gray-800 text-sm pr-4 flex-1">{item.text}</span>
-                    <ScoreButton 
-                      score={audit.items[item.id] || null} 
-                      onChange={(score) => handleItemChange(item.id, score)} 
-                    />
+          {CHECKLIST_CATEGORIES.map(category => {
+            const score = getCategoryScore(audit, category.id);
+            return (
+              <div key={category.id} className="space-y-3">
+                <div className="flex justify-between items-end border-b-2 border-black pb-2">
+                  <h3 className="font-heading font-bold text-lg text-black">
+                    {category.title}
+                  </h3>
+                  <div className="text-sm font-bold text-brand bg-brand/10 px-2 py-1 rounded">
+                    {score.valid > 0 ? `${score.percentage}%` : '0%'}
                   </div>
-                ))}
+                </div>
+                <div className="space-y-2">
+                  {category.items.map(item => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+                      <span className="text-gray-800 text-sm pr-4 flex-1">{item.text}</span>
+                      <ScoreButton 
+                        score={audit.items[item.id] || null} 
+                        onChange={(score) => handleItemChange(item.id, score)} 
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="space-y-2 pt-4">
@@ -154,7 +163,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
           onClick={handleSave}
           className="flex-1 bg-black text-white font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
-          <Save className="w-5 h-5" />
+          <Save className="w-5 h-5 text-brand" />
           {isSaved ? 'Saved!' : 'Save Progress'}
         </button>
         
@@ -163,7 +172,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
             onClick={handleDownload}
             className="flex-1 bg-gray-100 text-black border border-gray-300 font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
           >
-            <Download className="w-5 h-5" />
+            <Download className="w-5 h-5 text-brand" />
             Download JSON
           </button>
         )}

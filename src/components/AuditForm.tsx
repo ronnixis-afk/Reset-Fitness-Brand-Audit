@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Audit, saveAudit, getAudit, Score, generateId } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { getCategoryScore } from '../lib/score';
@@ -10,6 +10,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
   const [audit, setAudit] = useState<Audit>({
     id: generateId(),
     date: new Date().toISOString().split('T')[0],
+    quarter: `Q${Math.floor(new Date().getMonth() / 3) + 1}`,
     facilityLocation: 'Reset Fitness Jumeirah Islands',
     auditorName: '',
     items: {},
@@ -31,6 +32,27 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
       setIsLoading(false);
     }
   }, [auditId]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isSaved) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isSaved]);
+
+  const handleBackWithGuard = () => {
+    if (!isSaved) {
+      if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
+        onBack();
+      }
+    } else {
+      onBack();
+    }
+  };
 
   const handleItemChange = (itemId: string, score: Score) => {
     setAudit(prev => ({
@@ -59,6 +81,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     const exportData = {
       id: audit.id,
       date: audit.date,
+      quarter: audit.quarter,
       facilityLocation: audit.facilityLocation,
       auditorName: audit.auditorName,
       comments: audit.comments,
@@ -86,10 +109,13 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
   return (
     <div className="max-w-3xl mx-auto bg-white min-h-screen pb-24 font-sans">
       <div className="sticky top-0 z-10 bg-black text-white p-4 shadow-md flex items-center justify-between">
-        <button onClick={onBack} className="p-2 -ml-2 hover:bg-gray-800 rounded-full transition-colors text-brand">
+        <button onClick={handleBackWithGuard} className="p-2 -ml-2 hover:bg-gray-800 rounded-full transition-colors text-brand">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="font-heading font-bold text-lg tracking-wider uppercase">Reset Fitness</h1>
+        <div className="flex flex-col items-center">
+          <h1 className="font-heading font-bold text-lg tracking-wider uppercase">Reset Fitness</h1>
+          {!isSaved && <span className="text-[10px] text-brand font-bold animate-pulse uppercase">Unsaved Changes</span>}
+        </div>
         <div className="w-10"></div>
       </div>
 
@@ -97,14 +123,29 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
         <div className="space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
           <h2 className="font-heading font-semibold text-xl text-gray-900">Audit Details</h2>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-            <input 
-              type="date" 
-              value={audit.date}
-              onChange={e => { setAudit({...audit, date: e.target.value}); setIsSaved(false); }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
-            />
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <input 
+                type="date" 
+                value={audit.date}
+                onChange={e => { setAudit({...audit, date: e.target.value}); setIsSaved(false); }}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+              />
+            </div>
+            <div className="w-32">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quarter</label>
+              <select 
+                value={audit.quarter}
+                onChange={e => { setAudit({...audit, quarter: e.target.value}); setIsSaved(false); }}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black bg-white"
+              >
+                <option value="Q1">Q1</option>
+                <option value="Q2">Q2</option>
+                <option value="Q3">Q3</option>
+                <option value="Q4">Q4</option>
+              </select>
+            </div>
           </div>
 
           <div>

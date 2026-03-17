@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Audit, getAudits, deleteAudit } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { getCategoryScore, getOverallScore } from '../lib/score';
@@ -60,6 +60,7 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar className="w-4 h-4 text-brand" />
                         <span className="font-medium text-gray-900">{audit.date}</span>
+                        <span className="text-xs font-bold text-gray-400">[{audit.quarter}]</span>
                         <span className="ml-auto font-heading font-bold text-lg text-brand bg-brand/10 px-2 py-0.5 rounded">{getOverallScore(audit)}%</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">

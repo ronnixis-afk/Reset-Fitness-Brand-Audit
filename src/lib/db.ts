@@ -3,6 +3,7 @@ export type Score = 'PASS' | 'FAIL' | 'NA' | null;
 export interface Audit {
   id: string;
   date: string;
+  quarter: string;
   facilityLocation: string;
   auditorName: string;
   items: Record<string, Score>;

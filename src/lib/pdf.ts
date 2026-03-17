@@ -36,7 +36,7 @@ export function generatePDF(audit: Audit) {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(0, 0, 0);
   
-  doc.text(`Date: ${audit.date}`, margin, y); y += 5;
+  doc.text(`Date: ${audit.date} (${audit.quarter})`, margin, y); y += 5;
   doc.text(`Facility: ${audit.facilityLocation}`, margin, y); y += 5;
   doc.text(`Auditor: ${audit.auditorName || 'N/A'}`, margin, y); y += 5;
   

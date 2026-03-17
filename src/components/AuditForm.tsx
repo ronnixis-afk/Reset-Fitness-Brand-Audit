@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Audit, saveAudit, getAudit, Score, generateId } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { getCategoryScore } from '../lib/score';
+import { generatePDF } from '../lib/pdf';
 import { ScoreButton } from './ScoreButton';
-import { ArrowLeft, Save, Download } from 'lucide-react';
+import { ArrowLeft, Save, Download, FileText, FileJson } from 'lucide-react';
 
 export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack: () => void }) {
   const [audit, setAudit] = useState<Audit>({
@@ -17,6 +18,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
   });
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   useEffect(() => {
     if (auditId) {
@@ -169,14 +171,46 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
         
         {isSaved && (
           <button 
-            onClick={handleDownload}
+            onClick={() => setShowDownloadModal(true)}
             className="flex-1 bg-gray-100 text-black border border-gray-300 font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
           >
             <Download className="w-5 h-5 text-brand" />
-            Download JSON
+            Download
           </button>
         )}
       </div>
+
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+            <h3 className="font-heading font-bold text-xl text-center">Download Audit</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">Choose your preferred format</p>
+            
+            <button 
+              onClick={() => { generatePDF(audit); setShowDownloadModal(false); }}
+              className="w-full bg-brand text-white font-heading font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            >
+              <FileText className="w-5 h-5" />
+              Download PDF (Mobile Size)
+            </button>
+            
+            <button 
+              onClick={() => { handleDownload(); setShowDownloadModal(false); }}
+              className="w-full bg-gray-100 text-black font-heading font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            >
+              <FileJson className="w-5 h-5" />
+              Download JSON
+            </button>
+            
+            <button 
+              onClick={() => setShowDownloadModal(false)}
+              className="w-full bg-white text-gray-500 font-heading font-bold py-3 rounded-xl border border-gray-200 mt-2 active:scale-95 transition-transform"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

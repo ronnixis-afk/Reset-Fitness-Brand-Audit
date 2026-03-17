@@ -13,6 +13,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     facilityLocation: 'Reset Fitness Jumeirah Islands',
     auditorName: '',
     items: {},
+    itemComments: {},
     comments: '',
     lastSavedAt: Date.now()
   });
@@ -39,6 +40,14 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     setIsSaved(false);
   };
 
+  const handleItemCommentChange = (itemId: string, comment: string) => {
+    setAudit(prev => ({
+      ...prev,
+      itemComments: { ...(prev.itemComments || {}), [itemId]: comment }
+    }));
+    setIsSaved(false);
+  };
+
   const handleSave = async () => {
     const updatedAudit = { ...audit, lastSavedAt: Date.now() };
     await saveAudit(updatedAudit);
@@ -57,7 +66,8 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
         category: cat.title,
         items: cat.items.map(item => ({
           task: item.text,
-          score: audit.items[item.id] || 'Not Answered'
+          score: audit.items[item.id] || 'Not Answered',
+          ...(audit.items[item.id] === 'FAIL' && audit.itemComments?.[item.id] ? { reason: audit.itemComments[item.id] } : {})
         }))
       }))
     };
@@ -134,12 +144,25 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
                 </div>
                 <div className="space-y-2">
                   {category.items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
-                      <span className="text-gray-800 text-sm pr-4 flex-1">{item.text}</span>
-                      <ScoreButton 
-                        score={audit.items[item.id] || null} 
-                        onChange={(score) => handleItemChange(item.id, score)} 
-                      />
+                    <div key={item.id} className="flex flex-col p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-800 text-sm pr-4 flex-1">{item.text}</span>
+                        <ScoreButton 
+                          score={audit.items[item.id] || null} 
+                          onChange={(score) => handleItemChange(item.id, score)} 
+                        />
+                      </div>
+                      {audit.items[item.id] === 'FAIL' && (
+                        <div className="mt-3">
+                          <input
+                            type="text"
+                            placeholder="Reason for failure..."
+                            value={audit.itemComments?.[item.id] || ''}
+                            onChange={(e) => handleItemCommentChange(item.id, e.target.value)}
+                            className="w-full p-2 text-sm border border-red-200 rounded-md focus:ring-1 focus:ring-brand focus:border-brand bg-red-50 placeholder-red-300 text-red-900"
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

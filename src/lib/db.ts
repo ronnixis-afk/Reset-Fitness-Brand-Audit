@@ -6,6 +6,7 @@ export interface Audit {
   facilityLocation: string;
   auditorName: string;
   items: Record<string, Score>;
+  itemComments?: Record<string, string>;
   comments: string;
   lastSavedAt: number;
 }

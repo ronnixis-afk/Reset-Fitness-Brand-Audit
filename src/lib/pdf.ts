@@ -73,7 +73,18 @@ export function generatePDF(audit: Audit) {
       if (itemScore === 'NA') scoreText = 'N/A';
 
       const splitText = doc.splitTextToSize(item.text, width - 22);
-      checkPageBreak(splitText.length * 4 + 2);
+      
+      // Calculate needed height including potential comment
+      let neededHeight = splitText.length * 4 + 2;
+      let splitComment: string[] = [];
+      const hasComment = itemScore === 'FAIL' && audit.itemComments?.[item.id];
+      
+      if (hasComment) {
+        splitComment = doc.splitTextToSize(`Reason: ${audit.itemComments![item.id]}`, width - 26);
+        neededHeight += splitComment.length * 3.5 + 1;
+      }
+
+      checkPageBreak(neededHeight);
       
       doc.setTextColor(50, 50, 50);
       doc.text(splitText, margin + 2, y);
@@ -86,7 +97,19 @@ export function generatePDF(audit: Audit) {
       doc.text(scoreText, margin + width - 2, y, { align: 'right' });
       doc.setFont('helvetica', 'normal');
 
-      y += (splitText.length * 4) + 2;
+      y += (splitText.length * 4) + 1;
+
+      if (hasComment) {
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(224, 0, 0);
+        doc.text(splitComment, margin + 6, y);
+        y += (splitComment.length * 3.5) + 1;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+      } else {
+        y += 1;
+      }
     });
     y += 4;
   });

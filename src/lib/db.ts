@@ -8,6 +8,7 @@ export interface Audit {
   auditorName: string;
   items: Record<string, Score>;
   itemComments?: Record<string, string>;
+  itemImages?: Record<string, string[]>;
   comments: string;
   lastSavedAt: number;
 }

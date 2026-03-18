@@ -110,6 +110,27 @@ export function generatePDF(audit: Audit) {
       } else {
         y += 1;
       }
+
+      // Render images if any
+      const images = audit.itemImages?.[item.id] || [];
+      if (images.length > 0) {
+        const imgSize = 40;
+        const imgGap = 4;
+        
+        for (let i = 0; i < images.length; i += 2) {
+          checkPageBreak(imgSize + 4);
+          
+          // Image 1
+          doc.addImage(images[i], 'JPEG', margin + 6, y, imgSize, imgSize);
+          
+          // Image 2 (if exists)
+          if (i + 1 < images.length) {
+            doc.addImage(images[i + 1], 'JPEG', margin + 6 + imgSize + imgGap, y, imgSize, imgSize);
+          }
+          
+          y += imgSize + 4;
+        }
+      }
     });
     y += 4;
   });

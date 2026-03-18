@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Audit, saveAudit, getAudit, Score, generateId } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { getCategoryScore } from '../lib/score';
 import { generatePDF } from '../lib/pdf';
 import { ScoreButton } from './ScoreButton';
-import { ArrowLeft, Save, Download, FileText, FileJson } from 'lucide-react';
+import { ImageCropper } from './ImageCropper';
+import { ArrowLeft, Save, Download, FileText, FileJson, Camera, X } from 'lucide-react';
 
 export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack: () => void }) {
   const [audit, setAudit] = useState<Audit>({
@@ -15,12 +16,17 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     auditorName: '',
     items: {},
     itemComments: {},
+    itemImages: {},
     comments: '',
     lastSavedAt: Date.now()
   });
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [croppingItemId, setCroppingItemId] = useState<string | null>(null);
+  const [croppingImageSrc, setCroppingImageSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (auditId) {
@@ -67,6 +73,61 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
       ...prev,
       itemComments: { ...(prev.itemComments || {}), [itemId]: comment }
     }));
+    setIsSaved(false);
+  };
+
+  const handleImageUploadClick = (itemId: string) => {
+    setCroppingItemId(itemId);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCroppingImageSrc(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setCroppingItemId(null);
+    }
+  };
+
+  const handleCropComplete = (base64: string) => {
+    if (croppingItemId) {
+      setAudit(prev => {
+        const currentImages = prev.itemImages?.[croppingItemId] || [];
+        return {
+          ...prev,
+          itemImages: {
+            ...(prev.itemImages || {}),
+            [croppingItemId]: [...currentImages, base64]
+          }
+        };
+      });
+      setIsSaved(false);
+    }
+    setCroppingImageSrc(null);
+    setCroppingItemId(null);
+  };
+
+  const handleDeleteImage = (itemId: string, index: number) => {
+    setAudit(prev => {
+      const currentImages = prev.itemImages?.[itemId] || [];
+      const newImages = [...currentImages];
+      newImages.splice(index, 1);
+      return {
+        ...prev,
+        itemImages: {
+          ...(prev.itemImages || {}),
+          [itemId]: newImages
+        }
+      };
+    });
     setIsSaved(false);
   };
 
@@ -187,14 +248,25 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
                   {category.items.map(item => (
                     <div key={item.id} className="flex flex-col p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-800 text-sm pr-4 flex-1">{item.text}</span>
+                        <div className="flex items-center flex-1 pr-4 gap-2">
+                          <span className="text-gray-800 text-sm">{item.text}</span>
+                          {audit.items[item.id] === 'FAIL' && (
+                            <button 
+                              onClick={() => handleImageUploadClick(item.id)}
+                              className="p-1.5 text-gray-400 hover:text-brand bg-gray-50 hover:bg-red-50 rounded-full transition-colors shrink-0"
+                              title="Add Image Evidence"
+                            >
+                              <Camera className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                         <ScoreButton 
                           score={audit.items[item.id] || null} 
                           onChange={(score) => handleItemChange(item.id, score)} 
                         />
                       </div>
                       {audit.items[item.id] === 'FAIL' && (
-                        <div className="mt-3">
+                        <div className="mt-3 space-y-3">
                           <input
                             type="text"
                             placeholder="Reason for failure..."
@@ -202,6 +274,22 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
                             onChange={(e) => handleItemCommentChange(item.id, e.target.value)}
                             className="w-full p-2 text-sm border border-red-200 rounded-md focus:ring-1 focus:ring-brand focus:border-brand bg-red-50 placeholder-red-300 text-red-900"
                           />
+                          
+                          {audit.itemImages?.[item.id] && audit.itemImages[item.id].length > 0 && (
+                            <div className="grid grid-cols-2 gap-2">
+                              {audit.itemImages[item.id].map((img, idx) => (
+                                <div key={idx} className="relative group">
+                                  <img src={img} alt="Evidence" className="w-full aspect-square object-cover rounded-lg border border-gray-200" />
+                                  <button 
+                                    onClick={() => handleDeleteImage(item.id, idx)}
+                                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -243,6 +331,25 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
           </button>
         )}
       </div>
+
+      <input 
+        type="file" 
+        accept="image/*" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        className="hidden" 
+      />
+
+      {croppingImageSrc && croppingItemId && (
+        <ImageCropper
+          imageSrc={croppingImageSrc}
+          onCropComplete={handleCropComplete}
+          onCancel={() => {
+            setCroppingImageSrc(null);
+            setCroppingItemId(null);
+          }}
+        />
+      )}
 
       {showDownloadModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">

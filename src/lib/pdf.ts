@@ -69,10 +69,10 @@ export function generatePDF(audit: Audit) {
       const itemScore = audit.items[item.id];
       let scoreText = 'Unanswered';
       if (itemScore === 'PASS') scoreText = 'PASS';
-      if (itemScore === 'FAIL') scoreText = 'FAIL';
+      if (itemScore === 'FAIL') scoreText = 'Requires Urgent Attention';
       if (itemScore === 'NA') scoreText = 'N/A';
 
-      const splitText = doc.splitTextToSize(item.text, width - 22);
+      const splitText = doc.splitTextToSize(item.text, width - 38);
       
       // Calculate needed height including potential comment
       let neededHeight = splitText.length * 4 + 2;

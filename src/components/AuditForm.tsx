@@ -150,7 +150,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
         category: cat.title,
         items: cat.items.map(item => ({
           task: item.text,
-          score: audit.items[item.id] || 'Not Answered',
+          score: audit.items[item.id] === 'FAIL' ? 'Requires Urgent Attention' : (audit.items[item.id] || 'Not Answered'),
           ...(audit.items[item.id] === 'FAIL' && audit.itemComments?.[item.id] ? { reason: audit.itemComments[item.id] } : {})
         }))
       }))
@@ -269,7 +269,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
                         <div className="mt-3 space-y-3">
                           <input
                             type="text"
-                            placeholder="Reason for failure..."
+                            placeholder="Reason for urgent attention..."
                             value={audit.itemComments?.[item.id] || ''}
                             onChange={(e) => handleItemCommentChange(item.id, e.target.value)}
                             className="w-full p-2 text-sm border border-red-200 rounded-md focus:ring-1 focus:ring-brand focus:border-brand bg-red-50 placeholder-red-300 text-red-900"

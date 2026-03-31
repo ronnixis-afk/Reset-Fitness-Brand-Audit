@@ -7,13 +7,19 @@ import { auth } from '../firebase';
 
 export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: string) => void, onNewAudit: () => void }) {
   const [audits, setAudits] = useState<Audit[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [uploadStatus, setUploadStatus] = useState('Upload Audit');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadAudits = () => {
     if (auth.currentUser) {
-      getAudits().then(setAudits);
+      getAudits().then(data => {
+        setAudits(data);
+        setIsLoading(false);
+      });
+    } else {
+      setIsLoading(false);
     }
   };
 
@@ -160,7 +166,26 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
         <div className="mt-8">
           <h2 className="font-heading font-semibold text-lg text-gray-900 mb-4">Saved Audits</h2>
           
-          {audits.length === 0 ? (
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-pulse flex flex-col h-[140px]">
+                  <div className="flex justify-between mb-3">
+                    <div className="space-y-3 w-2/3">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-full"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                    <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                  </div>
+                  <div className="mt-auto pt-3 border-t border-gray-100 grid grid-cols-2 gap-4">
+                    <div className="h-3 bg-gray-200 rounded w-full"></div>
+                    <div className="h-3 bg-gray-200 rounded w-full"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : audits.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-200 border-dashed">
               <FileText className="w-12 h-12 text-brand mx-auto mb-3 opacity-50" />
               <p className="text-gray-500">No saved audits found.</p>

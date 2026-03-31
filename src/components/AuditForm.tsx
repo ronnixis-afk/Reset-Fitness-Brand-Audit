@@ -5,7 +5,7 @@ import { getCategoryScore } from '../lib/score';
 import { generatePDF } from '../lib/pdf';
 import { ScoreButton } from './ScoreButton';
 import { ImageCropper } from './ImageCropper';
-import { ArrowLeft, Save, Download, FileText, FileJson, Camera, X } from 'lucide-react';
+import { ArrowLeft, Save, Download, FileText, FileJson, Camera, X, Loader2 } from 'lucide-react';
 import { auth } from '../firebase';
 
 export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack: () => void }) {
@@ -27,6 +27,7 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState('Download JSON');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isProcessingImageId, setIsProcessingImageId] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [croppingItemId, setCroppingItemId] = useState<string | null>(null);
@@ -88,12 +89,15 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (file && croppingItemId) {
+      setIsProcessingImageId(croppingItemId);
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
+        await new Promise(r => setTimeout(r, 400));
         setCroppingImageSrc(reader.result as string);
+        setIsProcessingImageId(null);
       };
       reader.readAsDataURL(file);
     } else {
@@ -101,22 +105,31 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     }
   };
 
-  const handleCropComplete = (base64: string) => {
+  const handleCropComplete = async (base64: string) => {
     if (croppingItemId) {
+      const currentId = croppingItemId;
+      setIsProcessingImageId(currentId);
+      setCroppingImageSrc(null);
+      setCroppingItemId(null);
+      
+      await new Promise(r => setTimeout(r, 400));
+      
       setAudit(prev => {
-        const currentImages = prev.itemImages?.[croppingItemId] || [];
+        const currentImages = prev.itemImages?.[currentId] || [];
         return {
           ...prev,
           itemImages: {
             ...(prev.itemImages || {}),
-            [croppingItemId]: [...currentImages, base64]
+            [currentId]: [...currentImages, base64]
           }
         };
       });
       setIsSaved(false);
+      setIsProcessingImageId(null);
+    } else {
+      setCroppingImageSrc(null);
+      setCroppingItemId(null);
     }
-    setCroppingImageSrc(null);
-    setCroppingItemId(null);
   };
 
   const handleDeleteImage = (itemId: string, index: number) => {
@@ -183,8 +196,6 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     }, 2000);
   };
 
-  if (isLoading) return <div className="p-8 text-center font-sans">Loading...</div>;
-
   return (
     <div className="max-w-3xl mx-auto bg-white min-h-screen pb-24 font-sans">
       <div className="sticky top-0 z-10 bg-black text-white p-4 shadow-md flex items-center justify-between">
@@ -208,16 +219,18 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
               <input 
                 type="date" 
                 value={audit.date}
+                disabled={isLoading}
                 onChange={e => { setAudit({...audit, date: e.target.value}); setIsSaved(false); }}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black disabled:opacity-50 disabled:bg-gray-200"
               />
             </div>
             <div className="w-32">
               <label className="block text-sm font-medium text-gray-700 mb-1">Quarter</label>
               <select 
                 value={audit.quarter}
+                disabled={isLoading}
                 onChange={e => { setAudit({...audit, quarter: e.target.value}); setIsSaved(false); }}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black bg-white"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black bg-white disabled:opacity-50 disabled:bg-gray-200"
               >
                 <option value="Q1">Q1</option>
                 <option value="Q2">Q2</option>
@@ -232,8 +245,9 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
             <input 
               type="text" 
               value={audit.facilityLocation}
+              disabled={isLoading}
               onChange={e => { setAudit({...audit, facilityLocation: e.target.value}); setIsSaved(false); }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black disabled:opacity-50 disabled:bg-gray-200"
             />
           </div>
 
@@ -242,113 +256,136 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
             <input 
               type="text" 
               value={audit.auditorName}
+              disabled={isLoading}
               placeholder="Enter your name"
               onChange={e => { setAudit({...audit, auditorName: e.target.value}); setIsSaved(false); }}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black disabled:opacity-50 disabled:bg-gray-200"
             />
           </div>
         </div>
 
-        <div className="space-y-8">
-          {CHECKLIST_CATEGORIES.map(category => {
-            const score = getCategoryScore(audit, category.id);
-            return (
-              <div key={category.id} className="space-y-3">
-                <div className="flex justify-between items-end border-b-2 border-black pb-2">
-                  <h3 className="font-heading font-bold text-lg text-black">
-                    {category.title}
-                  </h3>
-                  <div className="text-sm font-bold text-brand bg-brand/10 px-2 py-1 rounded">
-                    {score.valid > 0 ? `${score.percentage}%` : '0%'}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {category.items.map(item => (
-                    <div key={item.id} className="flex flex-col p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center flex-1 pr-4 gap-2">
-                          <span className="text-gray-800 text-sm">{item.text}</span>
-                          {audit.items[item.id] === 'FAIL' && (
-                            <button 
-                              onClick={() => handleImageUploadClick(item.id)}
-                              className="p-1.5 text-gray-400 hover:text-brand bg-gray-50 hover:bg-red-50 rounded-full transition-colors shrink-0"
-                              title="Add Image Evidence"
-                            >
-                              <Camera className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                        <ScoreButton 
-                          score={audit.items[item.id] || null} 
-                          onChange={(score) => handleItemChange(item.id, score)} 
-                        />
+        {isLoading ? (
+          <div className="space-y-8 animate-pulse">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="space-y-3">
+                <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
+                {[1, 2, 3].map(j => (
+                  <div key={j} className="h-16 bg-gray-100 rounded-lg border border-gray-200"></div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="space-y-8">
+              {CHECKLIST_CATEGORIES.map(category => {
+                const score = getCategoryScore(audit, category.id);
+                return (
+                  <div key={category.id} className="space-y-3">
+                    <div className="flex justify-between items-end border-b-2 border-black pb-2">
+                      <h3 className="font-heading font-bold text-lg text-black">
+                        {category.title}
+                      </h3>
+                      <div className="text-sm font-bold text-brand bg-brand/10 px-2 py-1 rounded">
+                        {score.valid > 0 ? `${score.percentage}%` : '0%'}
                       </div>
-                      {audit.items[item.id] === 'FAIL' && (
-                        <div className="mt-3 space-y-3">
-                          <input
-                            type="text"
-                            placeholder="Reason for urgent attention..."
-                            value={audit.itemComments?.[item.id] || ''}
-                            onChange={(e) => handleItemCommentChange(item.id, e.target.value)}
-                            className="w-full p-2 text-sm border border-red-200 rounded-md focus:ring-1 focus:ring-brand focus:border-brand bg-red-50 placeholder-red-300 text-red-900"
-                          />
-                          
-                          {audit.itemImages?.[item.id] && audit.itemImages[item.id].length > 0 && (
-                            <div className="grid grid-cols-2 gap-2">
-                              {audit.itemImages[item.id].map((img, idx) => (
-                                <div key={idx} className="relative group">
-                                  <img src={img} alt="Evidence" className="w-full aspect-square object-cover rounded-lg border border-gray-200" />
-                                  <button 
-                                    onClick={() => handleDeleteImage(item.id, idx)}
-                                    className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
+                    </div>
+                    <div className="space-y-2">
+                      {category.items.map(item => (
+                        <div key={item.id} className="flex flex-col p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center flex-1 pr-4 gap-2">
+                              <span className="text-gray-800 text-sm">{item.text}</span>
+                              {audit.items[item.id] === 'FAIL' && (
+                                <button 
+                                  onClick={() => handleImageUploadClick(item.id)}
+                                  disabled={isProcessingImageId === item.id}
+                                  className={`p-1.5 rounded-full transition-colors shrink-0 ${isProcessingImageId === item.id ? 'bg-brand/10 text-brand cursor-not-allowed' : 'text-gray-400 hover:text-brand bg-gray-50 hover:bg-red-50'}`}
+                                  title="Add Image Evidence"
+                                >
+                                  {isProcessingImageId === item.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Camera className="w-4 h-4" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            <ScoreButton 
+                              score={audit.items[item.id] || null} 
+                              onChange={(score) => handleItemChange(item.id, score)} 
+                            />
+                          </div>
+                          {audit.items[item.id] === 'FAIL' && (
+                            <div className="mt-3 space-y-3">
+                              <input
+                                type="text"
+                                placeholder="Reason for urgent attention..."
+                                value={audit.itemComments?.[item.id] || ''}
+                                onChange={(e) => handleItemCommentChange(item.id, e.target.value)}
+                                className="w-full p-2 text-sm border border-red-200 rounded-md focus:ring-1 focus:ring-brand focus:border-brand bg-red-50 placeholder-red-300 text-red-900"
+                              />
+                              
+                              {audit.itemImages?.[item.id] && audit.itemImages[item.id].length > 0 && (
+                                <div className="grid grid-cols-2 gap-2">
+                                  {audit.itemImages[item.id].map((img, idx) => (
+                                    <div key={idx} className="relative group">
+                                      <img src={img} alt="Evidence" className="w-full aspect-square object-cover rounded-lg border border-gray-200" />
+                                      <button 
+                                        onClick={() => handleDeleteImage(item.id, idx)}
+                                        className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  </div>
+                );
+              })}
+            </div>
 
-        <div className="space-y-2 pt-4">
-          <label className="font-heading font-bold text-lg text-black block">Additional Comments</label>
-          <textarea 
-            value={audit.comments}
-            onChange={e => { setAudit({...audit, comments: e.target.value}); setIsSaved(false); }}
-            rows={4}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
-            placeholder="Any additional observations..."
-          />
-        </div>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-3 max-w-3xl mx-auto">
-        <button 
-          onClick={handleSave}
-          className="flex-1 bg-black text-white font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
-        >
-          <Save className="w-5 h-5 text-brand" />
-          {isSaved ? 'Saved!' : 'Save Progress'}
-        </button>
-        
-        {isSaved && (
-          <button 
-            onClick={() => setShowDownloadModal(true)}
-            className="flex-1 bg-gray-100 text-black border border-gray-300 font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
-          >
-            <Download className="w-5 h-5 text-brand" />
-            Download
-          </button>
+            <div className="space-y-2 pt-4">
+              <label className="font-heading font-bold text-lg text-black block">Additional Comments</label>
+              <textarea 
+                value={audit.comments}
+                onChange={e => { setAudit({...audit, comments: e.target.value}); setIsSaved(false); }}
+                rows={4}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                placeholder="Any additional observations..."
+              />
+            </div>
+          </>
         )}
       </div>
+
+      {!isLoading && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex gap-3 max-w-3xl mx-auto">
+          <button 
+            onClick={handleSave}
+            className="flex-1 bg-black text-white font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            <Save className="w-5 h-5 text-brand" />
+            {isSaved ? 'Saved!' : 'Save Progress'}
+          </button>
+          
+          {isSaved && (
+            <button 
+              onClick={() => setShowDownloadModal(true)}
+              className="flex-1 bg-gray-100 text-black border border-gray-300 font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            >
+              <Download className="w-5 h-5 text-brand" />
+              Download
+            </button>
+          )}
+        </div>
+      )}
 
       <input 
         type="file" 

@@ -6,14 +6,16 @@ import { generatePDF } from '../lib/pdf';
 import { ScoreButton } from './ScoreButton';
 import { ImageCropper } from './ImageCropper';
 import { ArrowLeft, Save, Download, FileText, FileJson, Camera, X } from 'lucide-react';
+import { auth } from '../firebase';
 
 export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack: () => void }) {
   const [audit, setAudit] = useState<Audit>({
     id: generateId(),
+    userId: auth.currentUser?.uid || '',
     date: new Date().toISOString().split('T')[0],
     quarter: `Q${Math.floor(new Date().getMonth() / 3) + 1}`,
     facilityLocation: 'Reset Fitness Jumeirah Islands',
-    auditorName: '',
+    auditorName: auth.currentUser?.displayName || '',
     items: {},
     itemComments: {},
     itemImages: {},
@@ -174,8 +176,8 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div className="flex flex-col items-center">
-          <h1 className="font-heading font-bold text-lg tracking-wider uppercase">Reset Fitness</h1>
-          {!isSaved && <span className="text-[10px] text-brand font-bold animate-pulse uppercase">Unsaved Changes</span>}
+          <h1 className="font-heading font-bold text-lg tracking-wider">Reset Fitness</h1>
+          {!isSaved && <span className="text-[10px] text-brand font-bold animate-pulse">Unsaved Changes</span>}
         </div>
         <div className="w-10"></div>
       </div>

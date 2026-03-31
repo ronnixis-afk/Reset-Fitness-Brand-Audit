@@ -1,7 +1,11 @@
+import { db, auth } from '../firebase';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
+
 export type Score = 'PASS' | 'FAIL' | 'NA' | null;
 
 export interface Audit {
   id: string;
+  userId: string;
   date: string;
   quarter: string;
   facilityLocation: string;
@@ -13,10 +17,6 @@ export interface Audit {
   lastSavedAt: number;
 }
 
-const DB_NAME = 'ResetFitnessAudits';
-const DB_VERSION = 1;
-const STORE_NAME = 'audits';
-
 export function generateId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -27,63 +27,50 @@ export function generateId() {
   });
 }
 
-export const initDB = (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      }
-    };
-  });
-};
-
 export const saveAudit = async (audit: Audit): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.put(audit);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  if (!auth.currentUser) throw new Error("Not authenticated");
+  const auditToSave = {
+    ...audit,
+    userId: auth.currentUser.uid,
+    items: JSON.stringify(audit.items),
+    itemComments: audit.itemComments ? JSON.stringify(audit.itemComments) : undefined,
+    itemImages: audit.itemImages ? JSON.stringify(audit.itemImages) : undefined,
+  };
+  await setDoc(doc(db, 'audits', audit.id), auditToSave);
 };
 
 export const getAudits = async (): Promise<Audit[]> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.getAll();
-    request.onsuccess = () => {
-      const audits = request.result as Audit[];
-      resolve(audits.sort((a, b) => b.lastSavedAt - a.lastSavedAt));
-    };
-    request.onerror = () => reject(request.error);
-  });
+  if (!auth.currentUser) return [];
+  const q = query(collection(db, 'audits'), where('userId', '==', auth.currentUser.uid));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      items: JSON.parse(data.items),
+      itemComments: data.itemComments ? JSON.parse(data.itemComments) : {},
+      itemImages: data.itemImages ? JSON.parse(data.itemImages) : {},
+    } as Audit;
+  }).sort((a, b) => b.lastSavedAt - a.lastSavedAt);
 };
 
 export const getAudit = async (id: string): Promise<Audit | undefined> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.get(id);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  if (!auth.currentUser) return undefined;
+  const docRef = doc(db, 'audits', id);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    return {
+      ...data,
+      items: JSON.parse(data.items),
+      itemComments: data.itemComments ? JSON.parse(data.itemComments) : {},
+      itemImages: data.itemImages ? JSON.parse(data.itemImages) : {},
+    } as Audit;
+  }
+  return undefined;
 };
 
 export const deleteAudit = async (id: string): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.delete(id);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  if (!auth.currentUser) throw new Error("Not authenticated");
+  await deleteDoc(doc(db, 'audits', id));
 };

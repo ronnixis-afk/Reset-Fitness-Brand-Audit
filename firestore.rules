@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: audits
+    // Document ID: {auditId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required, immutable)
+    //   - date: string (required)
+    //   - quarter: string (required)
+    //   - facilityLocation: string (required)
+    //   - auditorName: string (required)
+    //   - items: string (required)
+    //   - itemComments: string (optional)
+    //   - itemImages: string (optional)
+    //   - comments: string (optional)
+    //   - lastSavedAt: number (required)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    function uidUnchanged() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid;
+    }
+    
+    function uidNotModified() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function isValidAudit(data) {
+      return data.id is string && data.id.size() > 0 && data.id.size() < 100 &&
+             data.userId is string && data.userId.size() > 0 && data.userId.size() < 100 &&
+             data.date is string && data.date.size() > 0 && data.date.size() < 50 &&
+             data.quarter is string && data.quarter.size() > 0 && data.quarter.size() < 10 &&
+             data.facilityLocation is string && data.facilityLocation.size() > 0 && data.facilityLocation.size() < 200 &&
+             data.auditorName is string && data.auditorName.size() < 200 &&
+             data.items is string && data.items.size() < 1000000 &&
+             (!('itemComments' in data) || (data.itemComments is string && data.itemComments.size() < 1000000)) &&
+             (!('itemImages' in data) || (data.itemImages is string && data.itemImages.size() < 1000000)) &&
+             (!('comments' in data) || (data.comments is string && data.comments.size() < 1000000)) &&
+             data.lastSavedAt is number;
+    }
+
+    match /audits/{auditId} {
+      allow read: if isAuthenticated() && isDocOwner();
+      allow create: if isAuthenticated() && 
+                    hasRequiredFields(['id', 'userId', 'date', 'quarter', 'facilityLocation', 'auditorName', 'items', 'lastSavedAt']) &&
+                    isValidAudit(request.resource.data) && 
+                    uidUnchanged();
+      allow update: if isAuthenticated() && 
+                    isDocOwner() &&
+                    isValidAudit(request.resource.data) && 
+                    uidNotModified();
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+  }
+}

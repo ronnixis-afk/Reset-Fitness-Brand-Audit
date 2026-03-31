@@ -3,12 +3,15 @@ import { Audit, getAudits, deleteAudit } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { getCategoryScore, getOverallScore } from '../lib/score';
 import { Plus, FileText, Trash2, Calendar, MapPin, User } from 'lucide-react';
+import { auth } from '../firebase';
 
 export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: string) => void, onNewAudit: () => void }) {
   const [audits, setAudits] = useState<Audit[]>([]);
 
   const loadAudits = () => {
-    getAudits().then(setAudits);
+    if (auth.currentUser) {
+      getAudits().then(setAudits);
+    }
   };
 
   useEffect(() => {
@@ -26,7 +29,7 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
   return (
     <div className="max-w-3xl mx-auto min-h-screen bg-gray-50 font-sans pb-12">
       <div className="bg-black text-white p-6 shadow-md">
-        <h1 className="font-heading font-bold text-2xl tracking-wider uppercase text-center">Reset Fitness</h1>
+        <h1 className="font-heading font-bold text-2xl tracking-wider text-center">Reset Fitness</h1>
         <p className="text-center text-gray-400 text-sm mt-1">Brand Compliance Audits</p>
       </div>
 

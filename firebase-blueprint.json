@@ -1,0 +1,29 @@
+{
+  "entities": {
+    "Audit": {
+      "title": "Audit",
+      "description": "A brand compliance audit record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the audit" },
+        "userId": { "type": "string", "description": "The user ID of the auditor who created this record" },
+        "date": { "type": "string", "description": "Date of the audit" },
+        "quarter": { "type": "string", "description": "Quarter of the audit" },
+        "facilityLocation": { "type": "string", "description": "Location of the facility" },
+        "auditorName": { "type": "string", "description": "Name of the auditor" },
+        "items": { "type": "string", "description": "JSON stringified record of items and scores" },
+        "itemComments": { "type": "string", "description": "JSON stringified record of item comments" },
+        "itemImages": { "type": "string", "description": "JSON stringified record of item images" },
+        "comments": { "type": "string", "description": "Additional comments" },
+        "lastSavedAt": { "type": "number", "description": "Timestamp of last save" }
+      },
+      "required": ["id", "userId", "date", "quarter", "facilityLocation", "auditorName", "items", "lastSavedAt"]
+    }
+  },
+  "firestore": {
+    "/audits/{auditId}": {
+      "schema": { "$ref": "#/entities/Audit" },
+      "description": "Collection of all audits"
+    }
+  }
+}

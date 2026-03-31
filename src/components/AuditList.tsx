@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Audit, getAudits, deleteAudit } from '../lib/db';
+import React, { useState, useEffect, useRef } from 'react';
+import { Audit, getAudits, deleteAudit, saveAudit, generateId, Score } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { getCategoryScore, getOverallScore } from '../lib/score';
-import { Plus, FileText, Trash2, Calendar, MapPin, User } from 'lucide-react';
+import { Plus, FileText, Trash2, Calendar, MapPin, User, Upload } from 'lucide-react';
 import { auth } from '../firebase';
 
 export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: string) => void, onNewAudit: () => void }) {
   const [audits, setAudits] = useState<Audit[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadAudits = () => {
     if (auth.currentUser) {
@@ -26,6 +27,86 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result as string;
+        const parsed = JSON.parse(content);
+
+        let newAudit: Audit;
+
+        if (parsed.results) {
+          const items: Record<string, Score> = {};
+          const itemComments: Record<string, string> = {};
+
+          const textToId: Record<string, string> = {};
+          CHECKLIST_CATEGORIES.forEach(cat => {
+            cat.items.forEach(item => {
+              textToId[item.text] = item.id;
+            });
+          });
+
+          parsed.results.forEach((cat: any) => {
+            cat.items.forEach((item: any) => {
+              const id = textToId[item.task];
+              if (id) {
+                if (item.score === 'Requires Urgent Attention') {
+                  items[id] = 'FAIL';
+                  if (item.reason) itemComments[id] = item.reason;
+                } else if (item.score === 'Not Answered') {
+                  items[id] = null;
+                } else if (item.score === 'PASS' || item.score === 'Pass') {
+                  items[id] = 'PASS';
+                } else if (item.score === 'NA' || item.score === 'N/A') {
+                  items[id] = 'NA';
+                } else if (item.score === 'FAIL' || item.score === 'Fail') {
+                  items[id] = 'FAIL';
+                } else {
+                  items[id] = null;
+                }
+              }
+            });
+          });
+
+          newAudit = {
+            id: generateId(),
+            userId: auth.currentUser?.uid || '',
+            date: parsed.date || new Date().toISOString().split('T')[0],
+            quarter: parsed.quarter || '',
+            facilityLocation: parsed.facilityLocation || '',
+            auditorName: parsed.auditorName || '',
+            items,
+            itemComments,
+            itemImages: {},
+            comments: parsed.comments || '',
+            lastSavedAt: Date.now()
+          };
+        } else {
+          newAudit = {
+            ...parsed,
+            id: generateId(),
+            userId: auth.currentUser?.uid || '',
+            lastSavedAt: Date.now()
+          };
+        }
+
+        await saveAudit(newAudit);
+        loadAudits();
+        alert('Audit imported successfully!');
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        alert('Invalid JSON file format.');
+      }
+      
+      if (event.target) event.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="max-w-3xl mx-auto min-h-screen bg-gray-50 font-sans pb-12">
       <div className="bg-black text-white p-6 shadow-md">
@@ -34,13 +115,30 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
       </div>
 
       <div className="p-4 space-y-4">
-        <button 
-          onClick={onNewAudit}
-          className="w-full bg-black text-white font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform"
-        >
-          <Plus className="w-5 h-5 text-brand" />
-          Start New Audit
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={onNewAudit}
+            className="flex-1 bg-black text-white font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform"
+          >
+            <Plus className="w-5 h-5 text-brand" />
+            Start New Audit
+          </button>
+          
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 bg-white text-black border border-gray-200 font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform hover:border-brand"
+          >
+            <Upload className="w-5 h-5 text-brand" />
+            Upload Audit
+          </button>
+          <input 
+            type="file" 
+            accept=".json" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+          />
+        </div>
 
         <div className="mt-8">
           <h2 className="font-heading font-semibold text-lg text-gray-900 mb-4">Saved Audits</h2>

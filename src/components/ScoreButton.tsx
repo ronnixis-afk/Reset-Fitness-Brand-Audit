@@ -2,26 +2,30 @@ import React from 'react';
 import { Score } from '../lib/db';
 
 export function ScoreButton({ score, onChange }: { score: Score, onChange: (score: Score) => void }) {
+  const handleClick = () => {
+    if (score === null) onChange('PASS');
+    else if (score === 'PASS') onChange('FAIL');
+    else if (score === 'FAIL') onChange('NA');
+    else if (score === 'NA') onChange(null);
+  };
+
+  const getProps = () => {
+    switch (score) {
+      case 'PASS': return { text: 'Pass', className: 'bg-green-500 text-white' };
+      case 'FAIL': return { text: 'Fail', className: 'bg-red-500 text-white' };
+      case 'NA': return { text: 'N/A', className: 'bg-gray-500 text-white' };
+      default: return { text: 'Not Answered', className: 'bg-gray-100 text-gray-600 hover:bg-gray-200' };
+    }
+  };
+
+  const { text, className } = getProps();
+
   return (
-    <div className="flex gap-1">
-      <button 
-        onClick={() => onChange('PASS')}
-        className={`px-3 py-1 text-xs font-bold rounded ${score === 'PASS' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-      >
-        Pass
-      </button>
-      <button 
-        onClick={() => onChange('FAIL')}
-        className={`px-3 py-1 text-xs font-bold rounded ${score === 'FAIL' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-      >
-        Fail
-      </button>
-      <button 
-        onClick={() => onChange('NA')}
-        className={`px-3 py-1 text-xs font-bold rounded ${score === 'NA' ? 'bg-gray-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-      >
-        N/A
-      </button>
-    </div>
+    <button 
+      onClick={handleClick}
+      className={`px-3 py-1 text-xs font-bold rounded min-w-[100px] transition-colors ${className}`}
+    >
+      {text}
+    </button>
   );
 }

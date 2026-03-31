@@ -153,7 +153,8 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
         items: cat.items.map(item => ({
           task: item.text,
           score: audit.items[item.id] === 'FAIL' ? 'Requires Urgent Attention' : (audit.items[item.id] || 'Not Answered'),
-          ...(audit.items[item.id] === 'FAIL' && audit.itemComments?.[item.id] ? { reason: audit.itemComments[item.id] } : {})
+          ...(audit.items[item.id] === 'FAIL' && audit.itemComments?.[item.id] ? { reason: audit.itemComments[item.id] } : {}),
+          ...(audit.items[item.id] === 'FAIL' && audit.itemImages?.[item.id] && audit.itemImages[item.id].length > 0 ? { images: audit.itemImages[item.id] } : {})
         }))
       }))
     };

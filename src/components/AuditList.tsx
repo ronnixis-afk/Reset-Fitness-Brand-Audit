@@ -42,6 +42,7 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
         if (parsed.results) {
           const items: Record<string, Score> = {};
           const itemComments: Record<string, string> = {};
+          const itemImages: Record<string, string[]> = {};
 
           const textToId: Record<string, string> = {};
           CHECKLIST_CATEGORIES.forEach(cat => {
@@ -57,6 +58,7 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
                 if (item.score === 'Requires Urgent Attention') {
                   items[id] = 'FAIL';
                   if (item.reason) itemComments[id] = item.reason;
+                  if (item.images && Array.isArray(item.images)) itemImages[id] = item.images;
                 } else if (item.score === 'Not Answered') {
                   items[id] = null;
                 } else if (item.score === 'PASS' || item.score === 'Pass') {
@@ -81,7 +83,7 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
             auditorName: parsed.auditorName || '',
             items,
             itemComments,
-            itemImages: {},
+            itemImages,
             comments: parsed.comments || '',
             lastSavedAt: Date.now()
           };

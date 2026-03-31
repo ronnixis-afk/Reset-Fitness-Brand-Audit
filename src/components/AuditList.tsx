@@ -7,6 +7,8 @@ import { auth } from '../firebase';
 
 export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: string) => void, onNewAudit: () => void }) {
   const [audits, setAudits] = useState<Audit[]>([]);
+  const [uploadStatus, setUploadStatus] = useState('Upload Audit');
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadAudits = () => {
@@ -31,8 +33,17 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setIsUploading(true);
+    setUploadStatus('Uploading...');
+
+    // Simulate slight delay for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     const reader = new FileReader();
     reader.onload = async (e) => {
+      setUploadStatus('Processing...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       try {
         const content = e.target?.result as string;
         const parsed = JSON.parse(content);
@@ -55,7 +66,7 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
             cat.items.forEach((item: any) => {
               const id = textToId[item.task];
               if (id) {
-                if (item.score === 'Requires Urgent Attention') {
+                if (item.score === 'Requires Urgent Attention' || item.score === 'FAIL' || item.score === 'Fail') {
                   items[id] = 'FAIL';
                   if (item.reason) itemComments[id] = item.reason;
                   if (item.images && Array.isArray(item.images)) itemImages[id] = item.images;
@@ -65,8 +76,6 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
                   items[id] = 'PASS';
                 } else if (item.score === 'NA' || item.score === 'N/A') {
                   items[id] = 'NA';
-                } else if (item.score === 'FAIL' || item.score === 'Fail') {
-                  items[id] = 'FAIL';
                 } else {
                   items[id] = null;
                 }
@@ -75,7 +84,7 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
           });
 
           newAudit = {
-            id: generateId(),
+            id: parsed.id || generateId(),
             userId: auth.currentUser?.uid || '',
             date: parsed.date || new Date().toISOString().split('T')[0],
             quarter: parsed.quarter || '',
@@ -98,12 +107,17 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
 
         await saveAudit(newAudit);
         loadAudits();
-        alert('Audit imported successfully!');
+        setUploadStatus('Successfully Added');
       } catch (error) {
         console.error('Error parsing JSON:', error);
-        alert('Invalid JSON file format.');
+        setUploadStatus('Invalid Format');
       }
       
+      setTimeout(() => {
+        setUploadStatus('Upload Audit');
+        setIsUploading(false);
+      }, 2000);
+
       if (event.target) event.target.value = '';
     };
     reader.readAsText(file);
@@ -127,11 +141,12 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
           </button>
           
           <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 bg-white text-black border border-gray-200 font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform hover:border-brand"
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            disabled={isUploading}
+            className={`flex-1 bg-white text-black border border-gray-200 font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-transform ${isUploading ? 'opacity-75 cursor-not-allowed' : 'active:scale-95 hover:border-brand'}`}
           >
-            <Upload className="w-5 h-5 text-brand" />
-            Upload Audit
+            <Upload className={`w-5 h-5 ${isUploading ? 'text-gray-400 animate-pulse' : 'text-brand'}`} />
+            {uploadStatus}
           </button>
           <input 
             type="file" 

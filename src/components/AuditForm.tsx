@@ -25,6 +25,8 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState('Download JSON');
+  const [isDownloading, setIsDownloading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [croppingItemId, setCroppingItemId] = useState<string | null>(null);
@@ -140,7 +142,13 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     setIsSaved(true);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    setDownloadStatus('Downloading...');
+
+    // Simulate slight delay for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     const exportData = {
       id: audit.id,
       date: audit.date,
@@ -166,6 +174,13 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+
+    setDownloadStatus('Successfully Downloaded');
+    setTimeout(() => {
+      setDownloadStatus('Download JSON');
+      setIsDownloading(false);
+      setShowDownloadModal(false);
+    }, 2000);
   };
 
   if (isLoading) return <div className="p-8 text-center font-sans">Loading...</div>;
@@ -369,11 +384,12 @@ export function AuditForm({ auditId, onBack }: { auditId: string | null, onBack:
             </button>
             
             <button 
-              onClick={() => { handleDownload(); setShowDownloadModal(false); }}
-              className="w-full bg-gray-100 text-black font-heading font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className={`w-full bg-gray-100 text-black font-heading font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-transform ${isDownloading ? 'opacity-75 cursor-not-allowed' : 'active:scale-95'}`}
             >
-              <FileJson className="w-5 h-5" />
-              Download JSON
+              <FileJson className={`w-5 h-5 ${isDownloading ? 'animate-pulse text-gray-400' : ''}`} />
+              {downloadStatus}
             </button>
             
             <button 

@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Audit, getAudits, deleteAudit, saveAudit, generateId, Score } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
-import { getCategoryScore, getOverallScore } from '../lib/score';
-import { Plus, FileText, Trash2, Calendar, MapPin, User, Upload } from 'lucide-react';
+import { Plus, FileText, Upload } from 'lucide-react';
 import { auth } from '../firebase';
+import { Header } from './layout/Header';
+import { FloatingActionBar } from './layout/FloatingActionBar';
+import { AuditCard } from './audit-list/AuditCard';
+import { ScoreChart, ChartData } from './dashboard/ScoreChart';
+import { getOverallScore } from '../lib/score';
 
-export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: string) => void, onNewAudit: () => void }) {
+export function AuditList({ unit, onOpenAudit, onNewAudit, onBackToLocation }: { unit: string, onOpenAudit: (id: string) => void, onNewAudit: () => void, onBackToLocation: () => void }) {
   const [audits, setAudits] = useState<Audit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadStatus, setUploadStatus] = useState('Upload Audit');
   const [isUploading, setIsUploading] = useState(false);
+  const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadAudits = () => {
@@ -129,47 +134,32 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
     reader.readAsText(file);
   };
 
+  // Calculate unit score
+  const unitAudits = audits.filter(a => a.facilityLocation.includes(unit));
+  const unitScore = unitAudits.length > 0 
+    ? Math.round(unitAudits.reduce((acc, audit) => acc + getOverallScore(audit), 0) / unitAudits.length)
+    : 0;
+
+  const chartData: ChartData[] = [
+    { name: unit, score: unitScore }
+  ];
+
   return (
-    <div className="max-w-3xl mx-auto min-h-screen bg-gray-50 font-sans pb-12">
-      <div className="bg-black text-white p-6 shadow-md">
-        <h1 className="font-heading font-bold text-2xl tracking-wider text-center">Reset Fitness</h1>
-        <p className="text-center text-gray-400 text-sm mt-1">Brand Compliance Audits</p>
-      </div>
+    <div className="page-container">
+      <Header onBack={onBackToLocation} />
 
       <div className="p-4 space-y-4">
-        <div className="flex gap-3">
-          <button 
-            onClick={onNewAudit}
-            className="flex-1 bg-black text-white font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-95 transition-transform"
-          >
-            <Plus className="w-5 h-5 text-brand" />
-            Start New Audit
-          </button>
-          
-          <button 
-            onClick={() => !isUploading && fileInputRef.current?.click()}
-            disabled={isUploading}
-            className={`flex-1 bg-white text-black border border-gray-200 font-heading font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-transform ${isUploading ? 'opacity-75 cursor-not-allowed' : 'active:scale-95 hover:border-brand'}`}
-          >
-            <Upload className={`w-5 h-5 ${isUploading ? 'text-gray-400 animate-pulse' : 'text-brand'}`} />
-            {uploadStatus}
-          </button>
-          <input 
-            type="file" 
-            accept=".json" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            className="hidden" 
-          />
-        </div>
+        {!isLoading && unitAudits.length > 0 && (
+          <ScoreChart data={chartData} title={`Overall Score: ${unit}`} />
+        )}
 
-        <div className="mt-8">
-          <h2 className="font-heading font-semibold text-lg text-gray-900 mb-4">Saved Audits</h2>
+        <div className="mt-4">
+          <h2 className="section-title mb-4">Saved Audits</h2>
           
           {isLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
-                <div key={i} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-pulse flex flex-col h-[140px]">
+                <div key={i} className="card animate-pulse flex flex-col h-[100px]">
                   <div className="flex justify-between mb-3">
                     <div className="space-y-3 w-2/3">
                       <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -177,10 +167,6 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
                       <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                     </div>
                     <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-                  </div>
-                  <div className="mt-auto pt-3 border-t border-gray-100 grid grid-cols-2 gap-4">
-                    <div className="h-3 bg-gray-200 rounded w-full"></div>
-                    <div className="h-3 bg-gray-200 rounded w-full"></div>
                   </div>
                 </div>
               ))}
@@ -193,57 +179,46 @@ export function AuditList({ onOpenAudit, onNewAudit }: { onOpenAudit: (id: strin
           ) : (
             <div className="space-y-4">
               {audits.map(audit => (
-                <div 
+                <AuditCard
                   key={audit.id}
-                  onClick={() => onOpenAudit(audit.id)}
-                  className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:border-brand transition-colors flex flex-col"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 text-brand" />
-                        <span className="font-medium text-gray-900">{audit.date}</span>
-                        <span className="text-xs font-bold text-gray-400">[{audit.quarter}]</span>
-                        <span className="ml-auto font-heading font-bold text-lg text-brand bg-brand/10 px-2 py-0.5 rounded">{getOverallScore(audit)}%</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 text-brand" />
-                        <span className="truncate">{audit.facilityLocation}</span>
-                      </div>
-                      {audit.auditorName && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <User className="w-4 h-4 text-brand" />
-                          <span className="truncate">{audit.auditorName}</span>
-                        </div>
-                      )}
-                    </div>
-                    <button 
-                      onClick={(e) => handleDelete(e, audit.id)}
-                      className="p-2 ml-2 text-gray-400 hover:text-brand hover:bg-red-50 rounded-full transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                  
-                  <div className="mt-2 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
-                    {CHECKLIST_CATEGORIES.map(cat => {
-                      const score = getCategoryScore(audit, cat.id);
-                      return (
-                        <div key={cat.id} className="flex justify-between items-center text-xs">
-                          <span className="text-gray-500 truncate pr-2" title={cat.title}>{cat.title.replace(/^\d+\.\s*/, '')}</span>
-                          <span className={`font-bold ${score.valid > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                            {score.valid > 0 ? `${score.percentage}%` : 'N/A'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                  audit={audit}
+                  isExpanded={expandedAuditId === audit.id}
+                  onToggleExpand={() => setExpandedAuditId(expandedAuditId === audit.id ? null : audit.id)}
+                  onDelete={handleDelete}
+                  onOpenAudit={onOpenAudit}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <FloatingActionBar>
+        <button 
+          onClick={onNewAudit}
+          className="btn-primary flex-1"
+        >
+          <Plus className="w-5 h-5" />
+          Start New Audit
+        </button>
+        
+        <button 
+          onClick={() => !isUploading && fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="btn-secondary flex-1"
+        >
+          <Upload className={`w-5 h-5 ${isUploading ? 'animate-pulse text-brand' : ''}`} />
+          {uploadStatus}
+        </button>
+      </FloatingActionBar>
+
+      <input 
+        type="file" 
+        accept=".json" 
+        ref={fileInputRef} 
+        onChange={handleFileUpload} 
+        className="hidden" 
+      />
     </div>
   );
 }

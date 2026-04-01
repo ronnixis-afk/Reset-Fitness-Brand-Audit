@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { Check, X } from 'lucide-react';
 
@@ -7,7 +7,7 @@ export function ImageCropper({ imageSrc, onCropComplete, onCancel }: { imageSrc:
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
-  const onCropCompleteInternal = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+  const onCropCompleteInternal = useCallback((_: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
@@ -54,8 +54,8 @@ async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<string> 
     return '';
   }
 
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  canvas.width = 512;
+  canvas.height = 512;
 
   ctx.drawImage(
     image,
@@ -65,11 +65,11 @@ async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<string> 
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    512,
+    512
   );
 
-  return canvas.toDataURL('image/jpeg');
+  return canvas.toDataURL('image/jpeg', 0.8);
 }
 
 function createImage(url: string): Promise<HTMLImageElement> {

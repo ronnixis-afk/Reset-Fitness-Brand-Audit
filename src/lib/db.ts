@@ -1,5 +1,5 @@
 import { db, auth } from '../firebase';
-import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from 'firebase/firestore';
 
 export type Score = 'PASS' | 'FAIL' | 'NA' | null;
 

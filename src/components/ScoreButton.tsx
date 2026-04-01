@@ -1,4 +1,3 @@
-import React from 'react';
 import { Score } from '../lib/db';
 
 export function ScoreButton({ score, onChange }: { score: Score, onChange: (score: Score) => void }) {

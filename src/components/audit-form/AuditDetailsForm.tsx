@@ -7,10 +7,12 @@ interface AuditDetailsFormProps {
   setHasChanges: (val: boolean) => void;
   setIsSaved: (val: boolean) => void;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
-export function AuditDetailsForm({ audit, setAudit, setHasChanges, setIsSaved, isLoading }: AuditDetailsFormProps) {
+export function AuditDetailsForm({ audit, setAudit, setHasChanges, setIsSaved, isLoading, readOnly }: AuditDetailsFormProps) {
   const handleChange = (field: keyof Audit, value: string) => {
+    if (readOnly) return;
     setAudit(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
     setIsSaved(false);
@@ -18,7 +20,7 @@ export function AuditDetailsForm({ audit, setAudit, setHasChanges, setIsSaved, i
 
   return (
     <div className="space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-      <h2 className="section-title">Audit Details</h2>
+      <h2 className="section-title">{readOnly ? 'Audit Summary' : 'Audit Details'}</h2>
       
       <div className="flex gap-4">
         <div className="flex-1">
@@ -26,7 +28,7 @@ export function AuditDetailsForm({ audit, setAudit, setHasChanges, setIsSaved, i
           <input 
             type="date" 
             value={audit.date}
-            disabled={isLoading}
+            disabled={isLoading || readOnly}
             onChange={e => handleChange('date', e.target.value)}
             className="input-field disabled:opacity-50 disabled:bg-gray-200"
           />
@@ -35,7 +37,7 @@ export function AuditDetailsForm({ audit, setAudit, setHasChanges, setIsSaved, i
           <label className="input-label">Quarter</label>
           <select 
             value={audit.quarter}
-            disabled={isLoading}
+            disabled={isLoading || readOnly}
             onChange={e => handleChange('quarter', e.target.value)}
             className="input-field disabled:opacity-50 disabled:bg-gray-200"
           >
@@ -52,7 +54,7 @@ export function AuditDetailsForm({ audit, setAudit, setHasChanges, setIsSaved, i
         <input 
           type="text" 
           value={audit.facilityLocation}
-          disabled={isLoading}
+          disabled={isLoading || readOnly}
           onChange={e => handleChange('facilityLocation', e.target.value)}
           placeholder="e.g. Jumeirah Islands"
           className="input-field disabled:opacity-50 disabled:bg-gray-200"
@@ -64,7 +66,7 @@ export function AuditDetailsForm({ audit, setAudit, setHasChanges, setIsSaved, i
         <input 
           type="text" 
           value={audit.auditorName}
-          disabled={isLoading}
+          disabled={isLoading || readOnly}
           onChange={e => handleChange('auditorName', e.target.value)}
           placeholder="Your name"
           className="input-field disabled:opacity-50 disabled:bg-gray-200"

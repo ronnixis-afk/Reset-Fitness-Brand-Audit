@@ -19,7 +19,7 @@ const CustomLabel = (props: any) => {
     return (
       <g>
         <rect x={x + width / 2 - 45} y={y - 25} width="90" height="20" rx="10" fill="white" stroke="#E5E7EB" />
-        <text x={x + width / 2} y={y - 11} fill="#6B7280" textAnchor="middle" fontSize={10} fontWeight="bold" className="uppercase tracking-wider">
+        <text x={x + width / 2} y={y - 11} fill="#6B7280" textAnchor="middle" fontSize={10} fontWeight="bold" className="tracking-wider">
           Coming Soon
         </text>
       </g>
@@ -40,7 +40,7 @@ const CustomLabel = (props: any) => {
 export function ScoreChart({ data, title }: ScoreChartProps) {
   return (
     <div className="card p-6 mb-6">
-      <h2 className="section-title mb-6">{title}</h2>
+      <h2 className="brand-subtitle mb-6 !text-left !mt-0">{title}</h2>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>

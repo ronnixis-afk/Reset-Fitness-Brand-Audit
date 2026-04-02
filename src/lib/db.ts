@@ -1,5 +1,25 @@
 import { db, auth } from '../firebase';
-import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, onSnapshot } from 'firebase/firestore';
+
+const CACHE_KEY = 'reset_fitness_audits_cache';
+
+export const getCachedAudits = (): Audit[] => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    return cached ? JSON.parse(cached) : [];
+  } catch (e) {
+    console.error('Failed to parse cached audits', e);
+    return [];
+  }
+};
+
+export const setCachedAudits = (audits: Audit[]) => {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(audits));
+  } catch (e) {
+    console.error('Failed to cache audits', e);
+  }
+};
 
 export type Score = 'PASS' | 'FAIL' | 'NA' | null;
 
@@ -43,7 +63,7 @@ export const getAudits = async (): Promise<Audit[]> => {
   if (!auth.currentUser) return [];
   const q = query(collection(db, 'audits'), where('userId', '==', auth.currentUser.uid));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => {
+  const audits = snapshot.docs.map(doc => {
     const data = doc.data();
     return {
       ...data,
@@ -52,10 +72,31 @@ export const getAudits = async (): Promise<Audit[]> => {
       itemImages: data.itemImages ? JSON.parse(data.itemImages) : {},
     } as Audit;
   }).sort((a, b) => b.lastSavedAt - a.lastSavedAt);
+  
+  setCachedAudits(audits);
+  return audits;
+};
+
+export const onAuditsUpdate = (callback: (audits: Audit[]) => void) => {
+  if (!auth.currentUser) return () => {};
+  const q = query(collection(db, 'audits'), where('userId', '==', auth.currentUser.uid));
+  return onSnapshot(q, (snapshot) => {
+    const audits = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        items: JSON.parse(data.items),
+        itemComments: data.itemComments ? JSON.parse(data.itemComments) : {},
+        itemImages: data.itemImages ? JSON.parse(data.itemImages) : {},
+      } as Audit;
+    }).sort((a, b) => b.lastSavedAt - a.lastSavedAt);
+    
+    setCachedAudits(audits);
+    callback(audits);
+  });
 };
 
 export const getAudit = async (id: string): Promise<Audit | undefined> => {
-  if (!auth.currentUser) return undefined;
   const docRef = doc(db, 'audits', id);
   const docSnap = await getDoc(docRef);
   if (docSnap.exists()) {

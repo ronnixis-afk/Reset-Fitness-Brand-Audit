@@ -10,6 +10,7 @@ interface CategorySectionProps {
   onItemCommentChange: (itemId: string, comment: string) => void;
   onImageUploadClick: (itemId: string) => void;
   onRemoveImage: (itemId: string, index: number) => void;
+  readOnly?: boolean;
 }
 
 export function CategorySection({
@@ -19,7 +20,8 @@ export function CategorySection({
   onItemChange,
   onItemCommentChange,
   onImageUploadClick,
-  onRemoveImage
+  onRemoveImage,
+  readOnly
 }: CategorySectionProps) {
   const score = getCategoryScore(audit, category.id);
   
@@ -46,6 +48,7 @@ export function CategorySection({
             onCommentChange={(comment) => onItemCommentChange(item.id, comment)}
             onImageUploadClick={() => onImageUploadClick(item.id)}
             onRemoveImage={(index) => onRemoveImage(item.id, index)}
+            readOnly={readOnly}
           />
         ))}
       </div>

@@ -60,7 +60,8 @@ service cloud.firestore {
     }
 
     match /audits/{auditId} {
-      allow read: if isAuthenticated() && isDocOwner();
+      allow get: if true;
+      allow list: if isAuthenticated() && isDocOwner();
       allow create: if isAuthenticated() && 
                     hasRequiredFields(['id', 'userId', 'date', 'quarter', 'facilityLocation', 'auditorName', 'items', 'lastSavedAt']) &&
                     isValidAudit(request.resource.data) && 

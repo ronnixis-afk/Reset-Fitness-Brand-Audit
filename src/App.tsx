@@ -6,10 +6,12 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { LogOut } from 'lucide-react';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { LocationSelection } from './components/location/LocationSelection';
+import { PublicAuditView } from './components/PublicAuditView';
 
 export default function App() {
-  const [view, setView] = useState<'location' | 'list' | 'form'>('location');
+  const [view, setView] = useState<'location' | 'list' | 'form' | 'public'>('location');
   const [currentAuditId, setCurrentAuditId] = useState<string | null>(null);
+  const [publicAuditId, setPublicAuditId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -17,6 +19,17 @@ export default function App() {
   const [unit, setUnit] = useState('Jumeirah Islands');
 
   useEffect(() => {
+    // Check for public route
+    const path = window.location.pathname;
+    const publicMatch = path.match(/\/public\/audit\/([^/]+)/);
+    
+    if (publicMatch) {
+      setPublicAuditId(publicMatch[1]);
+      setView('public');
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -48,6 +61,10 @@ export default function App() {
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center font-sans">Loading...</div>;
+  }
+
+  if (view === 'public' && publicAuditId) {
+    return <PublicAuditView auditId={publicAuditId} />;
   }
 
   if (!user) {

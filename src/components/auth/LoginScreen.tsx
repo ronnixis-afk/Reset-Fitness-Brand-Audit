@@ -38,7 +38,7 @@ export function LoginScreen() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="input-field"
-              placeholder="auditor@resetfitness.com"
+              placeholder="name@ihitreset.com"
             />
           </div>
           <div>

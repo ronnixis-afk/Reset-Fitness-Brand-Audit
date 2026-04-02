@@ -78,7 +78,6 @@ export function generatePDF(audit: Audit) {
       
       const images = audit.itemImages?.[item.id];
       if (images && images.length > 0) {
-        const imgWidth = 50; // ~1/4 of 210mm page width
         const imgHeight = 37.5;
         const padding = 5;
         const rowsOfImages = Math.ceil(images.length / 3);

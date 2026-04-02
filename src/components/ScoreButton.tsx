@@ -1,7 +1,8 @@
 import { Score } from '../lib/db';
 
-export function ScoreButton({ score, onChange }: { score: Score, onChange: (score: Score) => void }) {
+export function ScoreButton({ score, onChange, readOnly }: { score: Score, onChange: (score: Score) => void, readOnly?: boolean }) {
   const handleClick = () => {
+    if (readOnly) return;
     if (score === null) onChange('PASS');
     else if (score === 'PASS') onChange('FAIL');
     else if (score === 'FAIL') onChange('NA');
@@ -22,7 +23,7 @@ export function ScoreButton({ score, onChange }: { score: Score, onChange: (scor
   return (
     <button 
       onClick={handleClick}
-      className={`px-3 py-1 text-xs font-bold rounded min-w-[100px] transition-colors ${className}`}
+      className={`px-3 py-1 text-xs font-bold rounded min-w-[100px] transition-colors ${className} ${readOnly ? 'cursor-default' : ''}`}
     >
       {text}
     </button>

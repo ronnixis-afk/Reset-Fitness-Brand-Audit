@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Audit, getAudits, deleteAudit, saveAudit, generateId, Score } from '../lib/db';
+import { Audit, deleteAudit, saveAudit, generateId, Score, onAuditsUpdate, getCachedAudits } from '../lib/db';
 import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { Plus, FileText, Upload } from 'lucide-react';
 import { auth } from '../firebase';
@@ -8,35 +8,28 @@ import { FloatingActionBar } from './layout/FloatingActionBar';
 import { AuditCard } from './audit-list/AuditCard';
 import { ScoreChart, ChartData } from './dashboard/ScoreChart';
 import { getOverallScore } from '../lib/score';
+import { RecentAuditsShimmer, ScoreChartShimmer } from './ui/Shimmer';
 
 export function AuditList({ unit, onOpenAudit, onNewAudit, onBackToLocation }: { unit: string, onOpenAudit: (id: string) => void, onNewAudit: () => void, onBackToLocation: () => void }) {
-  const [audits, setAudits] = useState<Audit[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [audits, setAudits] = useState<Audit[]>(getCachedAudits());
+  const [isLoading, setIsLoading] = useState(audits.length === 0);
   const [uploadStatus, setUploadStatus] = useState('Upload Audit');
   const [isUploading, setIsUploading] = useState(false);
   const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadAudits = () => {
-    if (auth.currentUser) {
-      getAudits().then(data => {
-        setAudits(data);
-        setIsLoading(false);
-      });
-    } else {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadAudits();
+    const unsubscribe = onAuditsUpdate((data) => {
+      setAudits(data);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this audit?')) {
       await deleteAudit(id);
-      loadAudits();
     }
   };
 
@@ -117,7 +110,6 @@ export function AuditList({ unit, onOpenAudit, onNewAudit, onBackToLocation }: {
         }
 
         await saveAudit(newAudit);
-        loadAudits();
         setUploadStatus('Successfully Added');
       } catch (error) {
         console.error('Error parsing JSON:', error);
@@ -149,48 +141,42 @@ export function AuditList({ unit, onOpenAudit, onNewAudit, onBackToLocation }: {
       <Header onBack={onBackToLocation} />
 
       <div className="p-4 space-y-4">
-        {!isLoading && unitAudits.length > 0 && (
-          <ScoreChart data={chartData} title={`Overall Score: ${unit}`} />
-        )}
+        {isLoading ? (
+          <>
+            <ScoreChartShimmer />
+            <RecentAuditsShimmer />
+          </>
+        ) : (
+          <>
+            {unitAudits.length > 0 && (
+              <ScoreChart data={chartData} title={`Overall Score: ${unit}`} />
+            )}
 
-        <div className="mt-4">
-          <h2 className="section-title mb-4">Saved Audits</h2>
-          
-          {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="card animate-pulse flex flex-col h-[100px]">
-                  <div className="flex justify-between mb-3">
-                    <div className="space-y-3 w-2/3">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-200 rounded w-full"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                    <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
-                  </div>
+            <div className="mt-4">
+              <h2 className="brand-subtitle mb-4 !text-left">Saved Audits</h2>
+              
+              {audits.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-xl border border-gray-200 border-dashed">
+                  <FileText className="w-12 h-12 text-brand mx-auto mb-3 opacity-50" />
+                  <p className="text-gray-500">No saved audits found.</p>
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-4">
+                  {audits.map(audit => (
+                    <AuditCard
+                      key={audit.id}
+                      audit={audit}
+                      isExpanded={expandedAuditId === audit.id}
+                      onToggleExpand={() => setExpandedAuditId(expandedAuditId === audit.id ? null : audit.id)}
+                      onDelete={handleDelete}
+                      onOpenAudit={onOpenAudit}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : audits.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl border border-gray-200 border-dashed">
-              <FileText className="w-12 h-12 text-brand mx-auto mb-3 opacity-50" />
-              <p className="text-gray-500">No saved audits found.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {audits.map(audit => (
-                <AuditCard
-                  key={audit.id}
-                  audit={audit}
-                  isExpanded={expandedAuditId === audit.id}
-                  onToggleExpand={() => setExpandedAuditId(expandedAuditId === audit.id ? null : audit.id)}
-                  onDelete={handleDelete}
-                  onOpenAudit={onOpenAudit}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
 
       <FloatingActionBar>

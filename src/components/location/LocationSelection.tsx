@@ -3,8 +3,9 @@ import { Header } from '../layout/Header';
 import { FloatingActionBar } from '../layout/FloatingActionBar';
 import { ScoreChart, ChartData } from '../dashboard/ScoreChart';
 import { RecentAudits } from '../dashboard/RecentAudits';
-import { Audit, getAudits, deleteAudit } from '../../lib/db';
+import { Audit, deleteAudit, onAuditsUpdate, getCachedAudits } from '../../lib/db';
 import { getOverallScore } from '../../lib/score';
+import { ScoreChartShimmer, RecentAuditsShimmer } from '../ui/Shimmer';
 
 interface LocationSelectionProps {
   country: string;
@@ -16,23 +17,22 @@ interface LocationSelectionProps {
 }
 
 export function LocationSelection({ country, setCountry, unit, setUnit, onNext, onOpenAudit }: LocationSelectionProps) {
-  const [audits, setAudits] = useState<Audit[]>([]);
+  const [audits, setAudits] = useState<Audit[]>(getCachedAudits());
+  const [loading, setLoading] = useState(audits.length === 0);
   const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
 
-  const loadAudits = async () => {
-    const data = await getAudits();
-    setAudits(data);
-  };
-
   useEffect(() => {
-    loadAudits();
+    const unsubscribe = onAuditsUpdate((data) => {
+      setAudits(data);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this audit?')) {
       await deleteAudit(id);
-      loadAudits();
     }
   };
 
@@ -54,18 +54,27 @@ export function LocationSelection({ country, setCountry, unit, setUnit, onNext, 
       <Header />
       
       <div className="flex-1 p-4 flex flex-col pb-24">
-        <ScoreChart data={chartData} title="Overall Score by Country" />
+        {loading ? (
+          <>
+            <ScoreChartShimmer />
+            <RecentAuditsShimmer />
+          </>
+        ) : (
+          <>
+            <ScoreChart data={chartData} title="Overall Score By Country" />
 
-        <RecentAudits 
-          audits={recentAudits} 
-          onOpenAudit={onOpenAudit} 
-          onDelete={handleDelete}
-          expandedAuditId={expandedAuditId}
-          setExpandedAuditId={setExpandedAuditId}
-        />
+            <RecentAudits 
+              audits={recentAudits} 
+              onOpenAudit={onOpenAudit} 
+              onDelete={handleDelete}
+              expandedAuditId={expandedAuditId}
+              setExpandedAuditId={setExpandedAuditId}
+            />
+          </>
+        )}
 
         <div className="card space-y-6 p-6 mt-8">
-          <h2 className="section-title text-center">Where are you auditing today?</h2>
+          <h2 className="brand-subtitle text-center !mt-0">Where Are You Auditing Today?</h2>
           
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">

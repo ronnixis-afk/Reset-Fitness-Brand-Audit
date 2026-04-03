@@ -4,7 +4,8 @@ import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { CategorySection } from './audit-form/CategorySection';
 import { AuditDetailsForm } from './audit-form/AuditDetailsForm';
 import { Header } from './layout/Header';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { LoadingScreen } from './ui/LoadingScreen';
+import { AlertCircle } from 'lucide-react';
 
 export function PublicAuditView({ auditId }: { auditId: string }) {
   const [audit, setAudit] = useState<Audit | null>(null);
@@ -27,12 +28,7 @@ export function PublicAuditView({ auditId }: { auditId: string }) {
   }, [auditId]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 font-sans">
-        <Loader2 className="w-10 h-10 text-brand animate-spin mb-4" />
-        <p className="text-gray-500 font-medium">Loading Audit Results...</p>
-      </div>
-    );
+    return <LoadingScreen message="Loading Audit Results..." />;
   }
 
   if (error || !audit) {

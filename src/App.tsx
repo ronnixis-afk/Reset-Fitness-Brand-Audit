@@ -7,6 +7,7 @@ import { LogOut } from 'lucide-react';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { LocationSelection } from './components/location/LocationSelection';
 import { PublicAuditView } from './components/PublicAuditView';
+import { LoadingScreen } from './components/ui/LoadingScreen';
 
 export default function App() {
   const [view, setView] = useState<'location' | 'list' | 'form' | 'public'>('location');
@@ -60,7 +61,7 @@ export default function App() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center font-sans">Loading...</div>;
+    return <LoadingScreen />;
   }
 
   if (view === 'public' && publicAuditId) {

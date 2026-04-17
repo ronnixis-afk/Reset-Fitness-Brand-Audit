@@ -32,7 +32,7 @@ export function AuditItemRow({
       <div className="flex items-center justify-between">
         <div className="flex items-center flex-1 pr-4 gap-2">
           <span className="text-gray-800 text-sm">{item.text}</span>
-          {score === 'FAIL' && !readOnly && (
+          {(score === 'FAIL' || score === 'NEEDS_ATTENTION') && !readOnly && (
             <button 
               onClick={onImageUploadClick}
               disabled={isProcessingImage}
@@ -53,15 +53,19 @@ export function AuditItemRow({
           readOnly={readOnly}
         />
       </div>
-      {score === 'FAIL' && (
+      {(score === 'FAIL' || score === 'NEEDS_ATTENTION') && (
         <div className="mt-3 space-y-3">
           <input
             type="text"
-            placeholder="Reason for urgent attention..."
+            placeholder={score === 'FAIL' ? "Reason for urgent attention..." : "Reason for attention..."}
             value={comment}
             readOnly={readOnly}
             onChange={(e) => onCommentChange(e.target.value)}
-            className={`w-full p-2 text-sm border border-red-200 rounded-md focus:ring-1 focus:ring-brand focus:border-brand bg-red-50 placeholder-red-300 text-red-900 ${readOnly ? 'cursor-default' : ''}`}
+            className={`w-full p-2 text-sm border rounded-md focus:ring-1 bg-gray-50 placeholder-gray-400 ${
+              score === 'FAIL' 
+                ? 'border-red-200 focus:ring-brand focus:border-brand bg-red-50 placeholder-red-300 text-red-900' 
+                : 'border-orange-200 focus:ring-orange-500 focus:border-orange-500 bg-orange-50 placeholder-orange-300 text-orange-900'
+            } ${readOnly ? 'cursor-default' : ''}`}
           />
           
           {images && images.length > 0 && (

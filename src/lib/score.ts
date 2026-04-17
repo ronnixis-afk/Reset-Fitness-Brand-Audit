@@ -10,9 +10,10 @@ export function getCategoryScore(audit: Audit, categoryId: string) {
   
   category.items.forEach(item => {
     const score = audit.items[item.id];
-    if (score === 'PASS' || score === 'FAIL') {
+    if (score === 'PASS' || score === 'FAIL' || score === 'NEEDS_ATTENTION') {
       total++;
       if (score === 'PASS') passed++;
+      else if (score === 'NEEDS_ATTENTION') passed += 0.5;
     }
   });
   
@@ -29,9 +30,10 @@ export function getOverallScore(audit: Audit) {
   CHECKLIST_CATEGORIES.forEach(category => {
     category.items.forEach(item => {
       const score = audit.items[item.id];
-      if (score === 'PASS' || score === 'FAIL') {
+      if (score === 'PASS' || score === 'FAIL' || score === 'NEEDS_ATTENTION') {
         total++;
         if (score === 'PASS') passed++;
+        else if (score === 'NEEDS_ATTENTION') passed += 0.5;
       }
     });
   });

@@ -71,6 +71,8 @@ export function generatePDF(audit: Audit) {
       let scoreText = rawScore || 'N/A';
       if (rawScore === 'FAIL') {
         scoreText = 'Requires Urgent Attention';
+      } else if (rawScore === 'NEEDS_ATTENTION') {
+        scoreText = 'Needs Attention';
       }
       const comment = audit.itemComments?.[item.id] || '';
       

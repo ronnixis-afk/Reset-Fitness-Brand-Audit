@@ -21,7 +21,7 @@ export const setCachedAudits = (audits: Audit[]) => {
   }
 };
 
-export type Score = 'PASS' | 'FAIL' | 'NA' | null;
+export type Score = 'PASS' | 'FAIL' | 'NEEDS_ATTENTION' | 'NA' | null;
 
 export interface Audit {
   id: string;

@@ -186,9 +186,13 @@ export function AuditForm({ auditId, onBack, selectedUnit }: { auditId: string |
         category: cat.title,
         items: cat.items.map(item => ({
           task: item.text,
-          score: audit.items[item.id] === 'FAIL' ? 'Requires Urgent Attention' : (audit.items[item.id] || 'Not Answered'),
-          ...(audit.items[item.id] === 'FAIL' && audit.itemComments?.[item.id] ? { reason: audit.itemComments[item.id] } : {}),
-          ...(audit.items[item.id] === 'FAIL' && audit.itemImages?.[item.id] && audit.itemImages[item.id].length > 0 ? { images: audit.itemImages[item.id] } : {})
+          score: audit.items[item.id] === 'FAIL' 
+            ? 'Requires Urgent Attention' 
+            : audit.items[item.id] === 'NEEDS_ATTENTION' 
+              ? 'Needs Attention' 
+              : (audit.items[item.id] || 'Not Answered'),
+          ...( (audit.items[item.id] === 'FAIL' || audit.items[item.id] === 'NEEDS_ATTENTION') && audit.itemComments?.[item.id] ? { reason: audit.itemComments[item.id] } : {}),
+          ...( (audit.items[item.id] === 'FAIL' || audit.items[item.id] === 'NEEDS_ATTENTION') && audit.itemImages?.[item.id] && audit.itemImages[item.id].length > 0 ? { images: audit.itemImages[item.id] } : {})
         }))
       }))
     };

@@ -56,7 +56,13 @@ export function generatePDF(audit: Audit) {
   doc.setFontSize(16);
   doc.text('DETAILED RESULTS', 20, 20);
   
-  let currentY = 30;
+  // Score Legend
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text('Legend: Pass (1) | Needs Attention (0.5) | Urgent Attention (0)', 105, 26, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
+  
+  let currentY = 32;
   
   CHECKLIST_CATEGORIES.forEach((category) => {
     if (currentY > 250) {

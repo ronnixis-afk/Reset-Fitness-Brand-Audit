@@ -7,6 +7,7 @@ import { auth } from '../firebase';
 import { AuditDetailsForm } from './audit-form/AuditDetailsForm';
 import { CategorySection } from './audit-form/CategorySection';
 import { DownloadModal } from './audit-form/DownloadModal';
+import { ScoringLegend } from './ui/ScoringLegend';
 import { Header } from './layout/Header';
 
 export function AuditForm({ auditId, onBack, selectedUnit }: { auditId: string | null, onBack: () => void, selectedUnit?: string }) {
@@ -228,6 +229,8 @@ export function AuditForm({ auditId, onBack, selectedUnit }: { auditId: string |
           setIsSaved={setIsSaved} 
           setHasChanges={setHasChanges} 
         />
+
+        <ScoringLegend />
 
         {isLoading ? (
           <div className="space-y-8 animate-pulse">

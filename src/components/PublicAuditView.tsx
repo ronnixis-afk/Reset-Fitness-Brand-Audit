@@ -4,6 +4,7 @@ import { CHECKLIST_CATEGORIES } from '../lib/checklist';
 import { CategorySection } from './audit-form/CategorySection';
 import { AuditDetailsForm } from './audit-form/AuditDetailsForm';
 import { Header } from './layout/Header';
+import { ScoringLegend } from './ui/ScoringLegend';
 import { LoadingScreen } from './ui/LoadingScreen';
 import { AlertCircle } from 'lucide-react';
 
@@ -54,6 +55,8 @@ export function PublicAuditView({ auditId }: { auditId: string }) {
           isLoading={true}
           readOnly={true}
         />
+
+        <ScoringLegend />
 
         <div className="space-y-8">
           {CHECKLIST_CATEGORIES.map(category => (
